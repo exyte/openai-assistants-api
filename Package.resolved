@@ -14,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/exyte/EventSourceHttpBody.git",
       "state" : {
-        "revision" : "7ac48a5dce0688826f101d7cbdcca16bf2c014b7",
-        "version" : "0.1.1"
+        "revision" : "9b68240460bae09faa0c5a9afbbccf5e18890e0c",
+        "version" : "0.1.3"
       }
     },
     {
