@@ -1,5 +1,5 @@
 //
-//  OpenAI+Models.swift
+//  Collection+HTTPHeader.swift
 //
 //  Copyright (c) 2024 Exyte
 //
@@ -23,33 +23,11 @@
 //
 
 import Foundation
-import Combine
-import Moya
 
-public extension OpenAI {
+extension Collection where Element == HTTPHeader {
 
-    func listModels() -> AnyPublisher<ObjectList<Model>, OpenAIError> {
-        modelsProvider.requestPublisher(for: .listModels)
-            .map { $0.data }
-            .decode(type: ObjectList<Model>.self, decoder: OpenAI.defaultDecoder)
-            .mapError { OpenAIError.decodingFailed($0) }
-            .eraseToAnyPublisher()
+    var dictionary: [String: String] {
+        self.reduce(into: [String: String]()) { $0[$1.name] = $1.value }
     }
-
-    func retrieveModel(with id: String) -> AnyPublisher<Model, OpenAIError> {
-        modelsProvider.requestPublisher(for: .retrieveModel(modelId: id))
-            .map { $0.data }
-            .decode(type: Model.self, decoder: OpenAI.defaultDecoder)
-            .mapError { OpenAIError.decodingFailed($0) }
-            .eraseToAnyPublisher()
-    }
-
-    func deleteModel(with id: String) -> AnyPublisher<DeletionStatus, OpenAIError> {
-        modelsProvider.requestPublisher(for: .deleteModel(modelId: id))
-            .map { $0.data }
-            .decode(type: DeletionStatus.self, decoder: OpenAI.defaultDecoder)
-            .mapError { OpenAIError.decodingFailed($0) }
-            .eraseToAnyPublisher()
-    }
-
+    
 }

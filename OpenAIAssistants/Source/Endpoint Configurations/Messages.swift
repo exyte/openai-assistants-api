@@ -23,7 +23,6 @@
 //
 
 import Foundation
-import Moya
 
 enum Messages {
 
@@ -36,18 +35,15 @@ enum Messages {
 
 }
 
-extension Messages: AccessTokenAuthorizable {
+extension Messages: EndpointConfiguration {
 
-    var authorizationType: Moya.AuthorizationType? {
-        .bearer
-    }
-
-}
-
-extension Messages: TargetType {
-
-    var baseURL: URL {
-        OpenAI.baseURL
+    var method: HTTPRequestMethod {
+        switch self {
+        case .createMessage, .modifyMessage:
+            return .post
+        case .retrieveMessage, .retrieveMessageFile, .listMessages, .listMessageFiles:
+            return .get
+        }
     }
 
     var path: String {
@@ -63,41 +59,17 @@ extension Messages: TargetType {
         }
     }
 
-    var method: Moya.Method {
-        switch self {
-        case .createMessage, .modifyMessage:
-            return .post
-        case .retrieveMessage, .retrieveMessageFile, .listMessages, .listMessageFiles:
-            return .get
-        }
-    }
-
-    var task: Moya.Task {
-        let encoder = JSONEncoder()
-        encoder.keyEncodingStrategy = .convertToSnakeCase
+    var task: RequestTask {
         switch self {
         case .createMessage(_, let payload):
-            return .requestCustomJSONEncodable(payload, encoder: encoder)
+            return .JSONEncodable(payload)
         case .listMessages(_, let payload), .listMessageFiles(_, _, let payload):
-            let parameters: [String: Any]
-            if let data = try? encoder.encode(payload) {
-                parameters = (try? JSONSerialization.jsonObject(with: data, options: .allowFragments))
-                    .flatMap { $0 as? [String: Any] } ?? [:]
-            } else {
-                parameters = [:]
-            }
-            return .requestParameters(parameters: parameters, encoding: URLEncoding.default)
+            return .URLParametersEncodable(payload)
         case .modifyMessage(_, _, let payload):
-            return .requestCustomJSONEncodable(payload, encoder: encoder)
+            return .JSONEncodable(payload)
         case .retrieveMessage, .retrieveMessageFile:
-            return .requestPlain
+            return .plain
         }
     }
-
-    var headers: [String: String]? {
-        [
-            "OpenAI-Beta": "assistants=v2"
-        ]
-    }
-
+    
 }

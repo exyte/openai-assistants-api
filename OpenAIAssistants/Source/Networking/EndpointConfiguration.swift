@@ -1,5 +1,5 @@
 //
-//  OpenAI+Models.swift
+//  EndpointConfiguration.swift
 //
 //  Copyright (c) 2024 Exyte
 //
@@ -23,33 +23,9 @@
 //
 
 import Foundation
-import Combine
-import Moya
 
-public extension OpenAI {
-
-    func listModels() -> AnyPublisher<ObjectList<Model>, OpenAIError> {
-        modelsProvider.requestPublisher(for: .listModels)
-            .map { $0.data }
-            .decode(type: ObjectList<Model>.self, decoder: OpenAI.defaultDecoder)
-            .mapError { OpenAIError.decodingFailed($0) }
-            .eraseToAnyPublisher()
-    }
-
-    func retrieveModel(with id: String) -> AnyPublisher<Model, OpenAIError> {
-        modelsProvider.requestPublisher(for: .retrieveModel(modelId: id))
-            .map { $0.data }
-            .decode(type: Model.self, decoder: OpenAI.defaultDecoder)
-            .mapError { OpenAIError.decodingFailed($0) }
-            .eraseToAnyPublisher()
-    }
-
-    func deleteModel(with id: String) -> AnyPublisher<DeletionStatus, OpenAIError> {
-        modelsProvider.requestPublisher(for: .deleteModel(modelId: id))
-            .map { $0.data }
-            .decode(type: DeletionStatus.self, decoder: OpenAI.defaultDecoder)
-            .mapError { OpenAIError.decodingFailed($0) }
-            .eraseToAnyPublisher()
-    }
-
+public protocol EndpointConfiguration {
+    var method: HTTPRequestMethod { get }
+    var path: String { get }
+    var task: RequestTask { get }
 }

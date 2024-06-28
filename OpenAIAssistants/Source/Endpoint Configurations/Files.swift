@@ -23,41 +23,18 @@
 //
 
 import Foundation
-import Moya
 
 enum Files {
     case uploadFile(payload: FilePayload)
     case listFiles
     case retrieveFile(id: String)
     case deleteFile(id: String)
-    case retrieveFileContent(id: String)
+    case retrieveFileContent(id: String, destination: URL)
 }
 
-extension Files: AccessTokenAuthorizable {
+extension Files: EndpointConfiguration {
 
-    var authorizationType: Moya.AuthorizationType? {
-        .bearer
-    }
-}
-
-extension Files: TargetType {
-
-    var baseURL: URL {
-        OpenAI.baseURL
-    }
-
-    var path: String {
-        switch self {
-        case .uploadFile, .listFiles:
-            return "files"
-        case .retrieveFile(let id), .deleteFile(let id):
-            return "files/\(id)"
-        case .retrieveFileContent(let id):
-            return "files/\(id)/content"
-        }
-    }
-
-    var method: Moya.Method {
+    var method: HTTPRequestMethod {
         switch self {
         case .uploadFile:
             return .post
@@ -68,36 +45,37 @@ extension Files: TargetType {
         }
     }
 
-    var task: Moya.Task {
-        let encoder = JSONEncoder()
-        encoder.keyEncodingStrategy = .convertToSnakeCase
+    var path: String {
         switch self {
-        case .uploadFile(let payload):
-            let formData: [MultipartFormData] = [
-                MultipartFormData(provider: .file(payload.fileURL), name: "file", fileName: payload.fileURL.lastPathComponent),
-                MultipartFormData(provider: .data(payload.purpose.data(using: .utf8)!), name: "purpose")
-            ]
-            return .uploadMultipart(formData)
-
-        case .listFiles, .retrieveFile, .deleteFile:
-            return .requestPlain
-        case .retrieveFileContent:
-
-            let defaultDownloadDestination: DownloadDestination = { temporaryURL, response in
-
-                let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                let fileURL = documentsURL.appendingPathComponent(response.suggestedFilename!)
-                return (fileURL, [.removePreviousFile, .createIntermediateDirectories])
-            }
-
-            return .downloadDestination(defaultDownloadDestination)
+        case .uploadFile, .listFiles:
+            return "files"
+        case .retrieveFile(let id), .deleteFile(let id):
+            return "files/\(id)"
+        case .retrieveFileContent(let id, _):
+            return "files/\(id)/content"
         }
     }
 
-    var headers: [String: String]? {
-        [
-            "OpenAI-Beta": "assistants=v2"
-        ]
+    var task: RequestTask {
+        switch self {
+        case .uploadFile(let payload):
+            let data: [FormBodyPart] = [
+                FormBodyPart(
+                    name: "file",
+                    value: .fileURL(payload.fileURL),
+                    fileName: payload.fileURL.lastPathComponent
+                ),
+                FormBodyPart(
+                    name: "purpose",
+                    value: .plainText(payload.purpose)
+                )
+            ]
+            return .uploadMultipart(data)
+        case .listFiles, .retrieveFile, .deleteFile:
+            return .plain
+        case .retrieveFileContent(let id, let destination):
+            return .download(destination)
+        }
     }
-
+    
 }

@@ -24,10 +24,6 @@
 
 import Foundation
 import Combine
-import Moya
-#if canImport(CombineMoya)
-import CombineMoya
-#endif
 
 public final class OpenAI {
 
@@ -44,25 +40,24 @@ public final class OpenAI {
         URL(string: "https://api.openai.com/v1")!
     }
 
-    let modelsProvider: MoyaProvider<Models>
-    let assistantsProvider: MoyaProvider<Assistans>
-    let threadsProvider: MoyaProvider<Threads>
-    let messagesProvider: MoyaProvider<Messages>
-    let runsProvider: MoyaProvider<Runs>
-    let filesProvider: MoyaProvider<Files>
+    let modelsProvider: Provider<Models>
+    let assistantsProvider: Provider<Assistans>
+    let threadsProvider: Provider<Threads>
+    let messagesProvider: Provider<Messages>
+    let runsProvider: Provider<Runs>
+    let filesProvider: Provider<Files>
 
     public init(apiKey: String, organization: String? = nil) {
         self.apiKey = apiKey
         self.organization = organization
-        
-        let accessTokenPlugin = AccessTokenPlugin { _ in apiKey }
 
-        modelsProvider = MoyaProvider<Models>(plugins: [accessTokenPlugin])
-        assistantsProvider = MoyaProvider<Assistans>(plugins: [accessTokenPlugin])
-        threadsProvider = MoyaProvider<Threads>(plugins: [accessTokenPlugin])
-        messagesProvider = MoyaProvider<Messages>(plugins: [accessTokenPlugin])
-        runsProvider = MoyaProvider<Runs>(plugins: [accessTokenPlugin])
-        filesProvider = MoyaProvider<Files>(plugins: [accessTokenPlugin])
+        modelsProvider = Provider<Models>(with: apiKey)
+        filesProvider = Provider<Files>(with: apiKey)
+
+        assistantsProvider = Provider<Assistans>(with: apiKey)
+        threadsProvider = Provider<Threads>(with: apiKey)
+        messagesProvider = Provider<Messages>(with: apiKey)
+        runsProvider = Provider<Runs>(with: apiKey)
     }
 
 }

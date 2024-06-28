@@ -24,42 +24,40 @@
 
 import Foundation
 import Combine
-import Moya
 import EventSourceHttpBody
 
 public extension OpenAI {
 
-    func createRun(in threadId: String, payload: CreateRunPayload) -> AnyPublisher<Run, MoyaError> {
+    func createRun(in threadId: String, payload: CreateRunPayload) -> AnyPublisher<Run, OpenAIError> {
         runsProvider.requestPublisher(
-            .createRun(
+            for: .createRun(
                 threadId: threadId,
                 payload: payload
             )
         )
-        .map(Run.self, using: OpenAI.defaultDecoder)
+        .map { $0.data }
+        .decode(type: Run.self, decoder: OpenAI.defaultDecoder)
+        .mapError { OpenAIError.decodingFailed($0) }
         .eraseToAnyPublisher()
     }
 
-    func createStreamRun(in threadId: String, payload: CreateRunPayload) -> AnyPublisher<StreamEvent, StreamError> {
+    func createStreamRun(in threadId: String, payload: CreateStreamRunPayload) -> AnyPublisher<StreamEvent, StreamError> {
         let subject = PassthroughSubject<StreamEvent, StreamError>()
-        guard let url = URL(string: "https://api.openai.com/v1/threads/\(threadId)/runs") else {
-            subject.send(completion: .failure(.invalidURL))
-            return subject.eraseToAnyPublisher()
-        }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("assistants=v2", forHTTPHeaderField: "OpenAI-Beta")
-
-        let parameters: [String: Any] = [
-            "assistant_id": payload.assistantId,
-            "stream": true
+        let url = OpenAI.baseURL.appending(path: "threads/\(threadId)/runs")
+        let headers: [HTTPHeader] = [
+            .authorization(bearerToken: apiKey),
+            .contentType(value: MimeType.json),
+            .openAIBeta(value: "assistants=v2")
         ]
+        var request = URLRequest(url: url)
+        request.httpMethod = HTTPRequestMethod.post.rawValue
+        request.allHTTPHeaderFields = headers.dictionary
 
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
         do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: parameters)
+            request.httpBody = try encoder.encode(payload)
         } catch {
             subject.send(completion: .failure(.invalidJSON))
         }
@@ -81,90 +79,106 @@ public extension OpenAI {
         ).eraseToAnyPublisher()
     }
 
-    func createThreadAndRun(from payload: CreateThreadAndRunPayload) -> AnyPublisher<Run, MoyaError> {
-        runsProvider.requestPublisher(.createThreadAndRun(payload: payload))
-            .map(Run.self, using: OpenAI.defaultDecoder)
+    func createThreadAndRun(from payload: CreateThreadAndRunPayload) -> AnyPublisher<Run, OpenAIError> {
+        runsProvider.requestPublisher(for: .createThreadAndRun(payload: payload))
+            .map { $0.data }
+            .decode(type: Run.self, decoder: OpenAI.defaultDecoder)
+            .mapError { OpenAIError.decodingFailed($0) }
             .eraseToAnyPublisher()
     }
 
-    func listRuns(from threadId: String, payload: ListPayload) -> AnyPublisher<ObjectList<Run>, MoyaError> {
+    func listRuns(from threadId: String, payload: ListPayload) -> AnyPublisher<ObjectList<Run>, OpenAIError> {
         runsProvider.requestPublisher(
-            .listRuns(
+            for: .listRuns(
                 threadId: threadId,
                 payload: payload
             )
         )
-            .map(ObjectList<Run>.self, using: OpenAI.defaultDecoder)
+            .map { $0.data }
+            .decode(type: ObjectList<Run>.self, decoder: OpenAI.defaultDecoder)
+            .mapError { OpenAIError.decodingFailed($0) }
             .eraseToAnyPublisher()
     }
 
-    func retrieveRun(id: String, from threadId: String) -> AnyPublisher<Run, MoyaError> {
+    func retrieveRun(id: String, from threadId: String) -> AnyPublisher<Run, OpenAIError> {
         runsProvider.requestPublisher(
-            .retrieveRun(
+            for: .retrieveRun(
                 threadId: threadId,
                 runId: id
             )
         )
-            .map(Run.self, using: OpenAI.defaultDecoder)
+            .map { $0.data }
+            .decode(type: Run.self, decoder: OpenAI.defaultDecoder)
+            .mapError { OpenAIError.decodingFailed($0) }
             .eraseToAnyPublisher()
     }
 
-    func modifyRun(id: String, from threadId: String, payload: ModifyPayload) -> AnyPublisher<Message, MoyaError> {
+    func modifyRun(id: String, from threadId: String, payload: ModifyPayload) -> AnyPublisher<Run, OpenAIError> {
         runsProvider.requestPublisher(
-            .modifyRun(
+            for: .modifyRun(
                 threadId: threadId,
                 runId: id,
                 payload: payload
             )
         )
-            .map(Message.self, using: OpenAI.defaultDecoder)
+            .map { $0.data }
+            .decode(type: Run.self, decoder: OpenAI.defaultDecoder)
+            .mapError { OpenAIError.decodingFailed($0) }
             .eraseToAnyPublisher()
     }
 
-    func cancelRun(id: String, from threadId: String) -> AnyPublisher<Message, MoyaError> {
+    func cancelRun(id: String, from threadId: String) -> AnyPublisher<Run, OpenAIError> {
         runsProvider.requestPublisher(
-            .cancelRun(
+            for: .cancelRun(
                 threadId: threadId,
                 runId: id
             )
         )
-            .map(Message.self, using: OpenAI.defaultDecoder)
+            .map { $0.data }
+            .decode(type: Run.self, decoder: OpenAI.defaultDecoder)
+            .mapError { OpenAIError.decodingFailed($0) }
             .eraseToAnyPublisher()
     }
 
-    func submitToolOutputs(to runId: String, from threadId: String, payload: SubmitToolOutputsPayload) -> AnyPublisher<Run, MoyaError> {
+    func submitToolOutputs(to runId: String, from threadId: String, payload: SubmitToolOutputsPayload) -> AnyPublisher<Run, OpenAIError> {
         runsProvider.requestPublisher(
-            .submitToolOutputs(
+            for: .submitToolOutputs(
                 threadId: threadId,
                 runId: runId,
                 payload: payload
             )
         )
-            .map(Run.self, using: OpenAI.defaultDecoder)
+            .map { $0.data }
+            .decode(type: Run.self, decoder: OpenAI.defaultDecoder)
+            .mapError { OpenAIError.decodingFailed($0) }
             .eraseToAnyPublisher()
     }
 
-    func listRunSteps(from runId: String, in threadId: String, payload: ListPayload) -> AnyPublisher<ObjectList<RunStep>, MoyaError> {
+    func listRunSteps(from runId: String, in threadId: String, payload: ListPayload) -> AnyPublisher<ObjectList<RunStep>, OpenAIError> {
         runsProvider.requestPublisher(
-            .listRunSteps(
+            for: .listRunSteps(
                 threadId: threadId,
                 runId: runId,
                 payload: payload
             )
         )
-            .map(ObjectList<RunStep>.self, using: OpenAI.defaultDecoder)
+            .map { $0.data }
+            .decode(type: ObjectList<RunStep>.self, decoder: OpenAI.defaultDecoder)
+            .mapError { OpenAIError.decodingFailed($0) }
             .eraseToAnyPublisher()
     }
 
-    func retrieveRunStep(id: String, from runId: String, in threadId: String) -> AnyPublisher<Run, MoyaError> {
+    func retrieveRunStep(id: String, from runId: String, in threadId: String) -> AnyPublisher<RunStep, OpenAIError> {
         runsProvider.requestPublisher(
-            .retrieveRunStep(
+            for: .retrieveRunStep(
                 threadId: threadId,
                 runId: runId,
                 runStepId: id
             )
         )
-            .map(Run.self, using: OpenAI.defaultDecoder)
+            .map { $0.data }
+            .decode(type: RunStep.self, decoder: OpenAI.defaultDecoder)
+            .mapError { OpenAIError.decodingFailed($0) }
             .eraseToAnyPublisher()
     }
 

@@ -34,18 +34,17 @@ enum Threads {
 
 }
 
-extension Threads: AccessTokenAuthorizable {
+extension Threads: EndpointConfiguration {
 
-    var authorizationType: Moya.AuthorizationType? {
-        .bearer
-    }
-
-}
-
-extension Threads: TargetType {
-
-    var baseURL: URL {
-        OpenAI.baseURL
+    var method: HTTPRequestMethod {
+        switch self {
+        case .createThread, .modifyThread:
+            return .post
+        case .retrieveThread:
+            return .get
+        case .deleteThread:
+            return .delete
+        }
     }
 
     var path: String {
@@ -57,36 +56,17 @@ extension Threads: TargetType {
         }
     }
 
-    var method: Moya.Method {
-        switch self {
-        case .createThread, .modifyThread:
-            return .post
-        case .retrieveThread:
-            return .get
-        case .deleteThread:
-            return .delete
-        }
-    }
-
-    var task: Moya.Task {
-        let encoder = JSONEncoder()
-        encoder.keyEncodingStrategy = .convertToSnakeCase
+    var task: RequestTask {
         switch self {
         case .createThread(let payload):
-            return .requestCustomJSONEncodable(payload, encoder: encoder)
+            return .JSONEncodable(payload)
         case .retrieveThread:
-            return .requestPlain
+            return .plain
         case .modifyThread(_, let payload):
-            return .requestCustomJSONEncodable(payload, encoder: encoder)
+            return .JSONEncodable(payload)
         case .deleteThread:
-            return .requestPlain
+            return .plain
         }
     }
-
-    var headers: [String: String]? {
-        [
-            "OpenAI-Beta": "assistants=v2"
-        ]
-    }
-
+    
 }

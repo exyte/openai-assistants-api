@@ -18,7 +18,6 @@ let package = Package(
             targets: ["OpenAIAssistants"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/Moya/Moya.git", .upToNextMajor(from: "15.0.0")),
         .package(url: "https://github.com/exyte/EventSourceHttpBody.git", .upToNextMajor(from: "0.1.3"))
     ],
     targets: [
@@ -27,7 +26,6 @@ let package = Package(
         .target(
             name: "OpenAIAssistants",
             dependencies: [
-                .product(name: "CombineMoya", package: "Moya"),
                 .product(name: "EventSourceHttpBody", package: "EventSourceHttpBody")],
             path: "OpenAIAssistants/Source")
     ]
