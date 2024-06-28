@@ -1,5 +1,5 @@
 //
-//  AssistansProvider.swift
+//  Assistants.swift
 //
 //  Copyright (c) 2024 Exyte
 //
@@ -23,7 +23,6 @@
 //
 
 import Foundation
-import Moya
 
 enum Assistans {
 
@@ -39,18 +38,17 @@ enum Assistans {
 
 }
 
-extension Assistans: AccessTokenAuthorizable {
+extension Assistans: EndpointConfiguration {
 
-    var authorizationType: Moya.AuthorizationType? {
-        .bearer
-    }
-
-}
-
-extension Assistans: TargetType {
-
-    var baseURL: URL {
-        OpenAI.baseURL
+    var method: HTTPRequestMethod {
+        switch self {
+        case .createAssistant, .modifyAssistant, .createAssistantFile:
+            return .post
+        case .listAssistants, .listAssistantFiles, .retrieveAssistant, .retrieveAssistantFile:
+            return .get
+        case .deleteAssistant, .deleteAssistantFile:
+            return .delete
+        }
     }
 
     var path: String {
@@ -66,45 +64,19 @@ extension Assistans: TargetType {
         }
     }
 
-    var method: Moya.Method {
-        switch self {
-        case .createAssistant, .modifyAssistant, .createAssistantFile:
-            return .post
-        case .listAssistants, .listAssistantFiles, .retrieveAssistant, .retrieveAssistantFile:
-            return .get
-        case .deleteAssistant, .deleteAssistantFile:
-            return .delete
-        }
-    }
-
-    var task: Moya.Task {
-        let encoder = JSONEncoder()
-        encoder.keyEncodingStrategy = .convertToSnakeCase
+    var task: RequestTask {
         switch self {
         case .createAssistant(let payload):
-            return .requestCustomJSONEncodable(payload, encoder: encoder)
+            return .JSONEncodable(payload)
         case .listAssistants(let payload), .listAssistantFiles(_, let payload):
-            let parameters: [String: Any]
-            if let data = try? encoder.encode(payload) {
-                parameters = (try? JSONSerialization.jsonObject(with: data, options: .allowFragments))
-                    .flatMap { $0 as? [String: Any] } ?? [:]
-            } else {
-                parameters = [:]
-            }
-            return .requestParameters(parameters: parameters, encoding: URLEncoding.default)
+            return .URLParametersEncodable(payload)
         case .modifyAssistant(_, let payload):
-            return .requestCustomJSONEncodable(payload, encoder: encoder)
+            return .JSONEncodable(payload)
         case .retrieveAssistant, .deleteAssistant, .retrieveAssistantFile, .deleteAssistantFile:
-            return .requestPlain
+            return .plain
         case .createAssistantFile(_, let payload):
-            return .requestCustomJSONEncodable(payload, encoder: encoder)
+            return .JSONEncodable(payload)
         }
     }
-
-    var headers: [String: String]? {
-        [
-            "OpenAI-Beta": "assistants=v2"
-        ]
-    }
-
+    
 }

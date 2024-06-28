@@ -17,6 +17,5 @@ Pod::Spec.new do |s|
   s.swift_version = "5.7"
   s.source_files = 'OpenAIAssistants/Source/**/*'
 
-  s.dependency 'Moya/Combine', '~> 15.0'
   s.dependency 'EventSourceHttpBody', '~> 0.1.0'
 end

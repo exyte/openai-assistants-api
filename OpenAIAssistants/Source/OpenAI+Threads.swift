@@ -28,32 +28,40 @@ import Moya
 
 public extension OpenAI {
 
-    func createThread(from payload: CreateThreadPayload) -> AnyPublisher<Thread, MoyaError> {
-        threadsProvider.requestPublisher(.createThread(payload: payload))
-            .map(Thread.self, using: OpenAI.defaultDecoder)
+    func createThread(from payload: CreateThreadPayload) -> AnyPublisher<Thread, OpenAIError> {
+        threadsProvider.requestPublisher(for: .createThread(payload: payload))
+            .map { $0.data }
+            .decode(type: Thread.self, decoder: OpenAI.defaultDecoder)
+            .mapError { OpenAIError.decodingFailed($0) }
             .eraseToAnyPublisher()
     }
 
-    func retrieveThread(id: String) -> AnyPublisher<Thread, MoyaError> {
-        threadsProvider.requestPublisher(.retrieveThread(threadId: id))
-            .map(Thread.self, using: OpenAI.defaultDecoder)
+    func retrieveThread(id: String) -> AnyPublisher<Thread, OpenAIError> {
+        threadsProvider.requestPublisher(for: .retrieveThread(threadId: id))
+            .map { $0.data }
+            .decode(type: Thread.self, decoder: OpenAI.defaultDecoder)
+            .mapError { OpenAIError.decodingFailed($0) }
             .eraseToAnyPublisher()
     }
 
-    func modifyThread(id: String, payload: ModifyPayload) -> AnyPublisher<Thread, MoyaError> {
+    func modifyThread(id: String, payload: ModifyPayload) -> AnyPublisher<Thread, OpenAIError> {
         threadsProvider.requestPublisher(
-            .modifyThread(
+            for: .modifyThread(
                 threadId: id,
                 payload: payload
             )
         )
-            .map(Thread.self, using: OpenAI.defaultDecoder)
+            .map { $0.data }
+            .decode(type: Thread.self, decoder: OpenAI.defaultDecoder)
+            .mapError { OpenAIError.decodingFailed($0) }
             .eraseToAnyPublisher()
     }
 
-    func deleteThread(id: String) -> AnyPublisher<DeletionStatus, MoyaError> {
-        threadsProvider.requestPublisher(.deleteThread(threadId: id))
-            .map(DeletionStatus.self, using: OpenAI.defaultDecoder)
+    func deleteThread(id: String) -> AnyPublisher<DeletionStatus, OpenAIError> {
+        threadsProvider.requestPublisher(for: .deleteThread(threadId: id))
+            .map { $0.data }
+            .decode(type: DeletionStatus.self, decoder: OpenAI.defaultDecoder)
+            .mapError { OpenAIError.decodingFailed($0) }
             .eraseToAnyPublisher()
     }
 

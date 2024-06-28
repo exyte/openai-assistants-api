@@ -23,7 +23,6 @@
 //
 
 import Foundation
-import Moya
 
 enum Runs {
 
@@ -39,18 +38,15 @@ enum Runs {
 
 }
 
-extension Runs: AccessTokenAuthorizable {
+extension Runs: EndpointConfiguration {
 
-    var authorizationType: Moya.AuthorizationType? {
-        .bearer
-    }
-
-}
-
-extension Runs: TargetType {
-
-    var baseURL: URL {
-        OpenAI.baseURL
+    var method: HTTPRequestMethod {
+        switch self {
+        case .createThreadAndRun, .createRun, .modifyRun, .cancelRun, .submitToolOutputs:
+            return .post
+        case .retrieveRun, .retrieveRunStep, .listRuns, .listRunSteps:
+            return .get
+        }
     }
 
     var path: String {
@@ -72,45 +68,23 @@ extension Runs: TargetType {
         }
     }
 
-    var method: Moya.Method {
-        switch self {
-        case .createThreadAndRun, .createRun, .modifyRun, .cancelRun, .submitToolOutputs:
-            return .post
-        case .retrieveRun, .retrieveRunStep, .listRuns, .listRunSteps:
-            return .get
-        }
-    }
-
-    var task: Moya.Task {
+    var task: RequestTask {
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
         switch self {
         case .createThreadAndRun(let payload):
-            return .requestCustomJSONEncodable(payload, encoder: encoder)
+            return .JSONEncodable(payload)
         case .createRun(_, let payload):
-            return .requestCustomJSONEncodable(payload, encoder: encoder)
+            return .JSONEncodable(payload)
         case .submitToolOutputs(_, _, let payload):
-            return .requestCustomJSONEncodable(payload, encoder: encoder)
+            return .JSONEncodable(payload)
         case .listRuns(_, let payload), .listRunSteps(_, _, let payload):
-            let parameters: [String: Any]
-            if let data = try? encoder.encode(payload) {
-                parameters = (try? JSONSerialization.jsonObject(with: data, options: .allowFragments))
-                    .flatMap { $0 as? [String: Any] } ?? [:]
-            } else {
-                parameters = [:]
-            }
-            return .requestParameters(parameters: parameters, encoding: URLEncoding.default)
+            return .URLParametersEncodable(payload)
         case .modifyRun(_, _, let payload):
-            return .requestCustomJSONEncodable(payload, encoder: encoder)
+            return .JSONEncodable(payload)
         case .retrieveRun, .retrieveRunStep, .cancelRun:
-            return .requestPlain
+            return .plain
         }
     }
-
-    var headers: [String: String]? {
-        [
-            "OpenAI-Beta": "assistants=v2"
-        ]
-    }
-
+    
 }

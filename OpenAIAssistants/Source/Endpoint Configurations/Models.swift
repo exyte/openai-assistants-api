@@ -1,5 +1,5 @@
 //
-//  OpenAI+Models.swift
+//  Models.swift
 //
 //  Copyright (c) 2024 Exyte
 //
@@ -23,33 +23,35 @@
 //
 
 import Foundation
-import Combine
-import Moya
 
-public extension OpenAI {
+enum Models {
 
-    func listModels() -> AnyPublisher<ObjectList<Model>, OpenAIError> {
-        modelsProvider.requestPublisher(for: .listModels)
-            .map { $0.data }
-            .decode(type: ObjectList<Model>.self, decoder: OpenAI.defaultDecoder)
-            .mapError { OpenAIError.decodingFailed($0) }
-            .eraseToAnyPublisher()
+    case listModels
+    case retrieveModel(modelId: String)
+    case deleteModel(modelId: String)
+
+}
+
+extension Models: EndpointConfiguration {
+
+    var method: HTTPRequestMethod {
+        switch self {
+        case .listModels, .retrieveModel:
+            return .get
+        case .deleteModel:
+            return .delete
+        }
     }
 
-    func retrieveModel(with id: String) -> AnyPublisher<Model, OpenAIError> {
-        modelsProvider.requestPublisher(for: .retrieveModel(modelId: id))
-            .map { $0.data }
-            .decode(type: Model.self, decoder: OpenAI.defaultDecoder)
-            .mapError { OpenAIError.decodingFailed($0) }
-            .eraseToAnyPublisher()
+    var path: String {
+        switch self {
+        case .listModels:
+            return "/models"
+        case .retrieveModel(let modelId), .deleteModel(let modelId):
+            return "/models/\(modelId)"
+        }
     }
 
-    func deleteModel(with id: String) -> AnyPublisher<DeletionStatus, OpenAIError> {
-        modelsProvider.requestPublisher(for: .deleteModel(modelId: id))
-            .map { $0.data }
-            .decode(type: DeletionStatus.self, decoder: OpenAI.defaultDecoder)
-            .mapError { OpenAIError.decodingFailed($0) }
-            .eraseToAnyPublisher()
-    }
+    var task: RequestTask { .plain }
 
 }

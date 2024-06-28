@@ -22,7 +22,6 @@
 //  THE SOFTWARE.
 //
 
-
 import Foundation
 
 public struct MessageCreationDetails: Codable {
